@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { Transaction, TransactionType } from "../types";
+import { Transaction } from "../types";
 
 const apiKey = process.env.API_KEY || '';
 
@@ -16,7 +16,8 @@ export const getDailyCryptoWisdom = async (streak: number): Promise<string> => {
       Their current check-in streak is (hypothetically) ${streak} days. 
       Keep it under 30 words. No financial advice, just fun vibes about holding, saving, or mooning.`,
     });
-    return response.text.trim();
+    // Handle potential undefined text
+    return response.text ? response.text.trim() : "Keep stacking sats!";
   } catch (error) {
     console.error("Gemini Error:", error);
     return "Keep building your stack, one day at a time!";
@@ -48,7 +49,8 @@ export const analyzeWalletActivity = async (transactions: Transaction[], balance
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
-    return response.text.trim();
+    // Handle potential undefined text
+    return response.text ? response.text.trim() : "Wallet activity analyzed.";
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
     return "Your wallet looks active! Keep managing your assets wiseley.";
