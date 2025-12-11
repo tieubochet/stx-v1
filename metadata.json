@@ -1,0 +1,5 @@
+{
+  "name": "ClarityWallet AI",
+  "description": "A customized personal wallet application featuring daily check-ins, token transfers, and AI-powered financial insights using Google Gemini.",
+  "requestFramePermissions": []
+}
