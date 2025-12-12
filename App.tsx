@@ -4,7 +4,7 @@ import ActionButtons from './components/ActionButtons';
 import TransactionList from './components/TransactionList';
 import TransferModal from './components/TransferModal';
 import ConnectWallet from './components/ConnectWallet';
-import { WalletState, Transaction, TransactionType } from './types';
+import { Transaction, TransactionType } from './types';
 import { getAccountBalance, getRecentTransactions } from './services/Service';
 
 // Stacks Connect Imports
