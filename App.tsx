@@ -141,7 +141,7 @@ const App: React.FC = () => {
         recipient: recipient,
         amount: amountMicroStx.toString(),
         memo: 'Sent via Teeboo',
-        network: STACKS_MAINNET, // Use Mainnet
+        network: STACKS_MAINNET, // Use Mainnet constant
         appDetails: {
           name: 'Teeboo App',
           icon: window.location.origin + '/favicon.ico',
