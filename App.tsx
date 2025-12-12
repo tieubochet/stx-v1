@@ -9,8 +9,8 @@ import { getAccountBalance, getRecentTransactions } from './services/Service';
 
 // Stacks Connect Imports
 import { showConnect, AppConfig, UserSession, openSTXTransfer } from '@stacks/connect';
-// Correct import for @stacks/network - using STACKS_MAINNET constant
-import { STACKS_MAINNET } from '@stacks/network';
+// FIX: Import the constant STACKS_MAINNET as suggested by the error
+import { StacksMainnet } from '@stacks/network';
 
 const CHECK_IN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const DAILY_POINTS_REWARD = 50; // Points, not STX
@@ -142,8 +142,8 @@ const App: React.FC = () => {
         recipient: recipient,
         amount: amountMicroStx.toString(),
         memo: 'Sent via Teeboo',
-        // FIX: Use constant STACKS_MAINNET instead of class instantiation
-        network: STACKS_MAINNET, 
+        // FIX: Use the constant STACKS_MAINNET
+        network: StacksMainnet, 
         appDetails: {
           name: 'Teeboo App',
           icon: window.location.origin + '/favicon.ico',
