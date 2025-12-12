@@ -1,5 +1,5 @@
 {
-  "name": "ClarityWallet AI",
-  "description": "A customized personal wallet application featuring daily check-ins, token transfers, and AI-powered financial insights using Google Gemini.",
+  "name": "Teeboo App",
+  "description": "A customized personal wallet application featuring daily check-ins and token transfers secured by Stacks Blockchain.",
   "requestFramePermissions": []
 }

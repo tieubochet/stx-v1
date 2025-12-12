@@ -3,10 +3,8 @@ import WalletCard from './components/WalletCard';
 import ActionButtons from './components/ActionButtons';
 import TransactionList from './components/TransactionList';
 import TransferModal from './components/TransferModal';
-import Advisor from './components/Advisor';
 import ConnectWallet from './components/ConnectWallet';
 import { WalletState, Transaction, TransactionType } from './types';
-import { getDailyCryptoWisdom, analyzeWalletActivity } from './services/Service';
 
 // Stacks Connect Imports
 import { showConnect, AppConfig, UserSession } from '@stacks/connect';
@@ -23,7 +21,7 @@ const App: React.FC = () => {
   // --- 1. State Management (Simulating Blockchain State) ---
   const [wallet, setWallet] = useState<WalletState>(() => {
     // Load from local storage for persistence or default
-    const saved = localStorage.getItem('clarity_wallet_v1');
+    const saved = localStorage.getItem('teeboo_app_v1');
     if (saved) {
       return JSON.parse(saved);
     }
@@ -35,8 +33,6 @@ const App: React.FC = () => {
   });
 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [aiMessage, setAiMessage] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   // Connection State
   const [userAddress, setUserAddress] = useState<string | null>(null);
@@ -57,7 +53,7 @@ const App: React.FC = () => {
 
   // Persist Wallet Data
   useEffect(() => {
-    localStorage.setItem('clarity_wallet_v1', JSON.stringify(wallet));
+    localStorage.setItem('teeboo_app_v1', JSON.stringify(wallet));
   }, [wallet]);
 
   // Handle Connect with Real Wallet (Leather/Xverse)
@@ -65,7 +61,7 @@ const App: React.FC = () => {
     setIsConnecting(true);
     showConnect({
       appDetails: {
-        name: 'ClarityWallet AI',
+        name: 'Teeboo App',
         icon: window.location.origin + '/favicon.ico', // Fallback icon
       },
       redirectTo: '/',
@@ -85,7 +81,6 @@ const App: React.FC = () => {
   const handleDisconnect = () => {
     userSession.signUserOut();
     setUserAddress(null);
-    setAiMessage(null);
   };
 
   // --- 2. The "4 Functions" of Clarity Logic ---
@@ -115,8 +110,6 @@ const App: React.FC = () => {
       return;
     }
 
-    setIsAiLoading(true);
-
     // 1. Generate new transaction
     const newTx: Transaction = {
       id: crypto.randomUUID(),
@@ -133,18 +126,6 @@ const App: React.FC = () => {
       lastCheckIn: now,
       transactions: [newTx, ...prev.transactions]
     }));
-
-    // 3. Trigger Gemini AI Side Effect
-    try {
-      // Calculate a fake streak based on transaction history length or just random for fun
-      const streak = wallet.transactions.filter(t => t.type === TransactionType.CHECK_IN).length + 1;
-      const wisdom = await getDailyCryptoWisdom(streak);
-      setAiMessage(wisdom);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsAiLoading(false);
-    }
   };
 
   /**
@@ -168,14 +149,6 @@ const App: React.FC = () => {
       balance: prev.balance - amount,
       transactions: [newTx, ...prev.transactions]
     }));
-    
-    // Trigger generic AI analysis occasionally on transfer
-    if (Math.random() > 0.5) {
-        setIsAiLoading(true);
-        const analysis = await analyzeWalletActivity([newTx, ...wallet.transactions], wallet.balance - amount);
-        setAiMessage(analysis);
-        setIsAiLoading(false);
-    }
   };
 
   // --- 3. Derived UI State ---
@@ -196,9 +169,9 @@ const App: React.FC = () => {
         <div className="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-clarity-600 to-purple-600 flex items-center justify-center">
-               <span className="font-bold text-lg">C</span>
+               <span className="font-bold text-lg">T</span>
              </div>
-             <h1 className="font-bold text-lg tracking-tight">ClarityWallet</h1>
+             <h1 className="font-bold text-lg tracking-tight">Teeboo App</h1>
           </div>
           <div className="flex items-center gap-3">
              <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 rounded-full border border-green-500/20">
@@ -226,15 +199,12 @@ const App: React.FC = () => {
           address={userAddress} 
         />
 
-        {/* AI Section */}
-        <Advisor message={aiMessage} loading={isAiLoading} />
-
         {/* Actions (Function 3 & 4 Triggers) */}
         <ActionButtons 
           onCheckIn={checkIn}
           onTransfer={() => setIsTransferModalOpen(true)}
           canCheckIn={canCheckIn}
-          isProcessing={isAiLoading}
+          isProcessing={false}
         />
 
         {/* Function 2: Get History (Visualized) */}
@@ -253,7 +223,7 @@ const App: React.FC = () => {
       {/* Footer Info */}
       <footer className="text-center mt-12 mb-6 text-gray-600 text-xs">
         <p>Secured by Stacks Blockchain</p>
-        <p className="mt-1">© 2024 ClarityWallet Inc.</p>
+        <p className="mt-1">© 2024 Teeboo App Inc.</p>
       </footer>
     </div>
   );

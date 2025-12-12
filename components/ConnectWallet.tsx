@@ -14,13 +14,13 @@ const ConnectWallet: React.FC<ConnectWalletProps> = ({ onConnect, isConnecting }
 
         <div className="relative z-10 max-w-md w-full text-center space-y-8 p-8 glass-panel rounded-3xl border border-white/10 shadow-2xl">
             <div className="w-20 h-20 bg-gradient-to-tr from-clarity-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-clarity-500/20 transform hover:rotate-3 transition-transform duration-300">
-                <span className="text-4xl font-bold text-white">C</span>
+                <span className="text-4xl font-bold text-white">T</span>
             </div>
             
             <div className="space-y-3">
-                <h1 className="text-3xl font-bold text-white tracking-tight">ClarityWallet AI</h1>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Teeboo App</h1>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                    Experience the next generation of Stacks wallets. <br/>
+                    Experience the next generation of personal wallets. <br/>
                     Daily rewards, AI insights, and seamless transfers.
                 </p>
             </div>
