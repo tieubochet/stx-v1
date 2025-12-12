@@ -1,7 +1,8 @@
 export enum TransactionType {
   DEPOSIT = 'DEPOSIT',
   WITHDRAWAL = 'WITHDRAWAL',
-  CHECK_IN = 'CHECK_IN'
+  CHECK_IN = 'CHECK_IN', // Keep check-in for local points
+  UNKNOWN = 'UNKNOWN'
 }
 
 export interface Transaction {
@@ -11,15 +12,14 @@ export interface Transaction {
   timestamp: number;
   description: string;
   recipient?: string;
+  sender?: string;
+  status?: 'success' | 'pending' | 'failed';
+  isRealChain: boolean; // Distinguish between real STX txs and local check-in txs
 }
 
 export interface WalletState {
-  balance: number;
-  lastCheckIn: number | null; // Timestamp
+  stxBalance: number; // Real STX Balance
+  rewardPoints: number; // Local "Teeboo Points"
+  lastCheckIn: number | null;
   transactions: Transaction[];
-}
-
-export interface AIAdvice {
-  message: string;
-  sentiment: 'positive' | 'neutral' | 'caution';
 }

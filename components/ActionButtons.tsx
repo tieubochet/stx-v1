@@ -25,7 +25,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onCheckIn, onTransfer, ca
           </svg>
         </div>
         <span className="font-medium text-sm">Daily Check-in</span>
-        {!canCheckIn && <span className="text-[10px] mt-1 text-gray-500">Come back tomorrow</span>}
+        <span className="text-[10px] mt-1 text-gray-400">Earn Points</span>
       </button>
 
       <button
@@ -38,7 +38,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({ onCheckIn, onTransfer, ca
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
           </svg>
         </div>
-        <span className="font-medium text-sm">Transfer</span>
+        <span className="font-medium text-sm">Transfer STX</span>
+        <span className="text-[10px] mt-1 text-gray-400">Mainnet</span>
       </button>
     </div>
   );

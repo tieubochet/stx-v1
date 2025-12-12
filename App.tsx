@@ -5,36 +5,35 @@ import TransactionList from './components/TransactionList';
 import TransferModal from './components/TransferModal';
 import ConnectWallet from './components/ConnectWallet';
 import { WalletState, Transaction, TransactionType } from './types';
+import { getAccountBalance, getRecentTransactions } from './services/Service';
 
 // Stacks Connect Imports
-import { showConnect, AppConfig, UserSession } from '@stacks/connect';
+import { showConnect, AppConfig, UserSession, openSTXTransfer } from '@stacks/connect';
+import { STACKS_MAINNET } from '@stacks/network';
 
-// --- Clarity-style Function Simulation Constants ---
-const DAILY_REWARD_AMOUNT = 10;
 const CHECK_IN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const DAILY_POINTS_REWARD = 50; // Points, not STX
 
 // --- Stacks Configuration ---
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
 
 const App: React.FC = () => {
-  // --- 1. State Management (Simulating Blockchain State) ---
-  const [wallet, setWallet] = useState<WalletState>(() => {
-    // Load from local storage for persistence or default
-    const saved = localStorage.getItem('teeboo_app_v1');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return {
-      balance: 0,
-      lastCheckIn: null,
-      transactions: []
-    };
+  // --- 1. State Management ---
+  
+  // Local State (for Check-in/Points only)
+  const [localState, setLocalState] = useState<{points: number, lastCheckIn: number | null}>(() => {
+    const saved = localStorage.getItem('teeboo_local_v2');
+    return saved ? JSON.parse(saved) : { points: 0, lastCheckIn: null };
   });
 
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  // Real Blockchain State
+  const [stxBalance, setStxBalance] = useState<number>(0);
+  const [chainTransactions, setChainTransactions] = useState<Transaction[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Connection State
+  // UI State
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [userAddress, setUserAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -42,7 +41,6 @@ const App: React.FC = () => {
   useEffect(() => {
     if (userSession.isUserSignedIn()) {
       const userData = userSession.loadUserData();
-      // Prefer Mainnet address
       setUserAddress(userData.profile.stxAddress.mainnet);
     } else if (userSession.isSignInPending()) {
       userSession.handlePendingSignIn().then((userData) => {
@@ -51,18 +49,43 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Persist Wallet Data
+  // Persist Local State (Points/Check-in)
   useEffect(() => {
-    localStorage.setItem('teeboo_app_v1', JSON.stringify(wallet));
-  }, [wallet]);
+    localStorage.setItem('teeboo_local_v2', JSON.stringify(localState));
+  }, [localState]);
 
-  // Handle Connect with Real Wallet (Leather/Xverse)
+  // Fetch Blockchain Data
+  const fetchData = useCallback(async () => {
+    if (!userAddress) return;
+    setIsRefreshing(true);
+    try {
+      const [balance, txs] = await Promise.all([
+        getAccountBalance(userAddress),
+        getRecentTransactions(userAddress)
+      ]);
+      setStxBalance(balance);
+      setChainTransactions(txs);
+    } catch (e) {
+      console.error("Failed to load blockchain data", e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [userAddress]);
+
+  // Load data on connect
+  useEffect(() => {
+    if (userAddress) {
+      fetchData();
+    }
+  }, [userAddress, fetchData]);
+
+  // Handle Connect
   const handleConnect = () => {
     setIsConnecting(true);
     showConnect({
       appDetails: {
         name: 'Teeboo App',
-        icon: window.location.origin + '/favicon.ico', // Fallback icon
+        icon: window.location.origin + '/favicon.ico',
       },
       redirectTo: '/',
       onFinish: () => {
@@ -70,93 +93,96 @@ const App: React.FC = () => {
         setUserAddress(userData.profile.stxAddress.mainnet);
         setIsConnecting(false);
       },
-      onCancel: () => {
-        setIsConnecting(false);
-      },
+      onCancel: () => setIsConnecting(false),
       userSession,
     });
   };
 
-  // Handle Disconnect
   const handleDisconnect = () => {
     userSession.signUserOut();
     setUserAddress(null);
+    setStxBalance(0);
+    setChainTransactions([]);
   };
 
-  // --- 2. The "4 Functions" of Clarity Logic ---
+  // --- 2. Logic ---
 
   /**
-   * Function 1: get-balance (read-only)
-   * Already available via wallet.balance state, but defined conceptually here.
-   */
-  const getBalance = useCallback(() => wallet.balance, [wallet.balance]);
-
-  /**
-   * Function 2: get-history (read-only)
-   * Already available via wallet.transactions.
-   */
-  const getHistory = useCallback(() => wallet.transactions, [wallet.transactions]);
-
-  /**
-   * Function 3: daily-check-in (public function)
-   * Awards tokens if cooldown passed.
+   * Function: daily-check-in (Local Gamification)
+   * Awards "Teeboo Points" off-chain.
    */
   const checkIn = async () => {
     const now = Date.now();
-    const last = wallet.lastCheckIn;
+    const last = localState.lastCheckIn;
 
     if (last && now - last < CHECK_IN_COOLDOWN_MS) {
-      alert("Check-in still in cooldown!");
+      alert("Check-in cooldown active!");
       return;
     }
 
-    // 1. Generate new transaction
-    const newTx: Transaction = {
-      id: crypto.randomUUID(),
-      type: TransactionType.CHECK_IN,
-      amount: DAILY_REWARD_AMOUNT,
-      timestamp: now,
-      description: 'Daily Reward Mined'
-    };
-
-    // 2. Update State
-    setWallet(prev => ({
+    setLocalState(prev => ({
       ...prev,
-      balance: prev.balance + DAILY_REWARD_AMOUNT,
-      lastCheckIn: now,
-      transactions: [newTx, ...prev.transactions]
+      points: prev.points + DAILY_POINTS_REWARD,
+      lastCheckIn: now
     }));
   };
 
   /**
-   * Function 4: transfer-token (public function)
-   * Sends tokens to another user.
+   * Function: transfer-token (Real Mainnet Transaction)
    */
   const transferToken = async (recipient: string, amount: number) => {
-    if (amount > wallet.balance) return;
+    if (!userAddress) return;
 
-    const newTx: Transaction = {
-      id: crypto.randomUUID(),
-      type: TransactionType.WITHDRAWAL,
-      amount: amount,
-      timestamp: Date.now(),
-      description: `Sent to ${recipient.substring(0, 6)}...`,
-      recipient: recipient
-    };
+    // Convert STX to Micro-STX (integer)
+    const amountMicroStx = Math.floor(amount * 1_000_000);
 
-    setWallet(prev => ({
-      ...prev,
-      balance: prev.balance - amount,
-      transactions: [newTx, ...prev.transactions]
-    }));
+    try {
+      await openSTXTransfer({
+        recipient: recipient,
+        amount: amountMicroStx.toString(),
+        memo: 'Sent via Teeboo',
+        network: STACKS_MAINNET, // Use Mainnet
+        appDetails: {
+          name: 'Teeboo App',
+          icon: window.location.origin + '/favicon.ico',
+        },
+        onFinish: (data) => {
+          console.log('Transaction Broadcasted:', data.txId);
+          setIsTransferModalOpen(false);
+          
+          // Add a temporary "Pending" transaction to UI
+          const pendingTx: Transaction = {
+            id: data.txId,
+            type: TransactionType.WITHDRAWAL,
+            amount: amount,
+            timestamp: Date.now(),
+            description: 'Transfer Pending...',
+            status: 'pending',
+            isRealChain: true
+          };
+          setChainTransactions(prev => [pendingTx, ...prev]);
+          
+          // Optionally create a link to explorer
+          window.open(`https://explorer.hiro.so/txid/${data.txId}?chain=mainnet`, '_blank');
+        },
+        onCancel: () => {
+          console.log('Transfer cancelled');
+        }
+      });
+    } catch (e) {
+      console.error("Transfer error:", e);
+      alert("Failed to initiate transfer. Check console.");
+    }
   };
 
-  // --- 3. Derived UI State ---
-  const canCheckIn = !wallet.lastCheckIn || (Date.now() - wallet.lastCheckIn > CHECK_IN_COOLDOWN_MS);
+  // --- 3. UI Derived State ---
+  const canCheckIn = !localState.lastCheckIn || (Date.now() - localState.lastCheckIn > CHECK_IN_COOLDOWN_MS);
+  
+  // Combine Real Txs with Local Check-in History (Optional visualization)
+  // For now, let's show Real Txs in the list, and just show Points in the UI.
 
   // --- 4. Render ---
   
-  // If not connected, show Connect Wallet Screen
   if (!userAddress) {
     return <ConnectWallet onConnect={handleConnect} isConnecting={isConnecting} />;
   }
@@ -193,37 +219,50 @@ const App: React.FC = () => {
 
       <main className="max-w-md mx-auto px-4 pt-6">
         
-        {/* Function 1: Get Balance (Visualized) */}
+        {/* Real Balance Card */}
         <WalletCard 
-          balance={getBalance()} 
+          balance={stxBalance} 
           address={userAddress} 
         />
+        
+        {/* Points Banner (Local Check-in) */}
+        <div className="mt-6 flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/5">
+           <div className="flex items-center gap-2">
+             <div className="p-1.5 bg-yellow-500/20 rounded-lg">
+                <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+             </div>
+             <span className="text-sm text-gray-300">Teeboo Points</span>
+           </div>
+           <span className="font-bold text-yellow-500">{localState.points} PTS</span>
+        </div>
 
-        {/* Actions (Function 3 & 4 Triggers) */}
+        {/* Actions */}
         <ActionButtons 
           onCheckIn={checkIn}
           onTransfer={() => setIsTransferModalOpen(true)}
           canCheckIn={canCheckIn}
-          isProcessing={false}
+          isProcessing={isRefreshing}
         />
 
-        {/* Function 2: Get History (Visualized) */}
-        <TransactionList transactions={getHistory()} />
+        {/* Real Transactions */}
+        <TransactionList transactions={chainTransactions} />
 
       </main>
 
-      {/* Function 4 UI: Transfer Modal */}
+      {/* Transfer Modal */}
       <TransferModal 
         isOpen={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         onConfirm={transferToken}
-        maxAmount={getBalance()}
+        maxAmount={stxBalance}
       />
       
-      {/* Footer Info */}
       <footer className="text-center mt-12 mb-6 text-gray-600 text-xs">
-        <p>Secured by Stacks Blockchain</p>
-        <p className="mt-1">© 2024 Teeboo App Inc.</p>
+        <p>Connected to Stacks Mainnet</p>
+        <button onClick={fetchData} className="mt-2 text-clarity-500 hover:text-clarity-400 underline">
+            Refresh Data
+        </button>
+        <p className="mt-4">© 2024 Teeboo App Inc.</p>
       </footer>
     </div>
   );
