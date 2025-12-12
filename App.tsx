@@ -9,7 +9,7 @@ import { getAccountBalance, getRecentTransactions } from './services/Service';
 
 // Stacks Connect Imports
 import { showConnect, AppConfig, UserSession, openSTXTransfer } from '@stacks/connect';
-import { STACKS_MAINNET } from '@stacks/network';
+import { StacksMainnet } from '@stacks/network';
 
 const CHECK_IN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 const DAILY_POINTS_REWARD = 50; // Points, not STX
@@ -141,7 +141,7 @@ const App: React.FC = () => {
         recipient: recipient,
         amount: amountMicroStx.toString(),
         memo: 'Sent via Teeboo',
-        network: STACKS_MAINNET, // Use the constant
+        network: StacksMainnet, // Use the constant
         appDetails: {
           name: 'Teeboo App',
           icon: window.location.origin + '/favicon.ico',
