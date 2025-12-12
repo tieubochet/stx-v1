@@ -9,7 +9,7 @@ import { getAccountBalance, getRecentTransactions } from './services/Service';
 
 // Stacks Connect Imports
 import { showConnect, AppConfig, UserSession, openSTXTransfer } from '@stacks/connect';
-// Correct import for @stacks/network v6.x
+// Correct import for @stacks/network - using STACKS_MAINNET constant
 import { STACKS_MAINNET } from '@stacks/network';
 
 const CHECK_IN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -142,7 +142,7 @@ const App: React.FC = () => {
         recipient: recipient,
         amount: amountMicroStx.toString(),
         memo: 'Sent via Teeboo',
-        // FIX: Instantiate the class for @stacks/network v6 compatibility
+        // FIX: Use constant STACKS_MAINNET instead of class instantiation
         network: STACKS_MAINNET, 
         appDetails: {
           name: 'Teeboo App',
